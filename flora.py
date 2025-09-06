@@ -1,7 +1,18 @@
+# All types of flowers encountered in the game are catalogued here.
+
+# Flowers can be found in either the Waking or the Dream domain (never both),
+# on only one tile type (water, deep water, or grass), and are native to one or
+# more locations, although once found, they can be grown on the appropriate
+# tile type in any location, in their native domain. They do not automatically
+# replenish and must be replanted. Flowers can be traded with NPCs for certain
+# items. Seeds can only be used to replant flowers.
+
 from environment import waking_locations, temperate_waking_locations, temperate_waking_northern, dream_locations, temperate_dream_locations, all_locations
 from environment import all_domains, all_habitats, all_tile_types
 
 class Flower:
+    """The flower's native growing conditions are logged as well as any
+    habitat the flower creates for critters."""
     def __init__(self, name, domain, locations, tile_type, habitat_created=None):
         self.name = name
         self.domain = domain
@@ -34,27 +45,27 @@ azure_heart = Flower(       name="Azure Heart",
 frosty_crown = Flower(      name="Frosty Crown",
     domain="Waking",        locations=["Climate Control"],
     tile_type="water")
-hoppyhock = Flower(         name="Hoppyhock",
-    domain="Dream",         locations=["Residential District"], # cross check this
-    tile_type="water")
 croakfoot = Flower(         name="Croakfoot",
     domain="Waking",        locations=["Climate Control"],
     tile_type="deep water")
 toadflux = Flower(          name="Toadflux",
-    domain="Waking",        locations=temperate_waking_northern,
+    domain="Waking",        locations=["Central Junction"],
     tile_type="grass")
 dream_orchid = Flower(      name="Dream Orchid",
     domain="Dream",         locations=dream_locations,
     tile_type="water",      habitat_created="Dream Orchids")
 broken_crown = Flower(      name="Broken Crown",
-    domain="Dreaming",      locations=["Frozen Dreams"], # cross check this
+    domain="Dreaming",      locations=["Frozen Dreams"],
+    tile_type="water")
+hoppyhock = Flower(         name="Hoppyhock",
+    domain="Dream",         locations=["Residential District"],
+    tile_type="water")
+cherry_bomb = Flower(       name="Cherry Bomb",
+    domain="Dream",         locations=["Future Farms"],
+    tile_type="water")
+motherwart = Flower(        name="Motherwart",
+    domain="Dream",         locations=["Memory Works"],
     tile_type="water")
 lost_lotus = Flower(        name="Lost Lotus",
     domain="Dream",         locations=dream_locations,
     tile_type="deep water")
-motherwart = Flower(        name="Motherwart",
-    domain="Dream",         locations=["Memory Works"],
-    tile_type="water")
-cherry_bomb = Flower(       name="Cherry Bomb",
-    domain="Dream",         locations=["Future Farms"],
-    tile_type="deep water") # cross check this
