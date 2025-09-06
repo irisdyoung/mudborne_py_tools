@@ -73,9 +73,15 @@ class MultiTraitModifier:
                 self.modifiers[code] += other_multi_trait_modifiers.modifiers[code]
 
 class Mud:
-    def __init__(self, multi_trait_modifiers):
+    """Mud reflects the combined effects of the mushrooms used to make it. It
+    cannot be further mixed into another mud. Mud is initialized with the
+    contributing mushrooms and uses the mix_mud method to determine the
+    resulting effects (called during __init__). The apply_to_frog method may
+    be called to do an in-place modification of the genetics of a frog. The
+    frog (tadpoles) should be passed as the sole argument to apply_to_frog."""
+    def __init__(self, mushrooms):
         self.aggregate_modifier = MultiTraitModifier()
-        self.aggregate_modifier.combine(multi_trait_modifiers)
+        self.aggregate_modifier.combine([m.modifier for m in mushrooms])
         self.mix_mud()
     def mix_mud(self):
         single_trait_modifiers = []
@@ -129,6 +135,10 @@ class Mud:
                     assert False, "mud not fully mixed at time of applying to frog"
 
 class Mushroom:
+    """All information about a species of mushroom, including its growing
+    conditions and effects on frogs, is member data of a Mushroom instance.
+    The modifier attribute is a MultiTraitModifier instance that will be
+    used and understood by the Mud class when mixing a magic mud."""
     def __init__(self, name, domain, tile_type, temperature, humidity, weather, effects):
         self.name = name
         self.domain = domain
@@ -145,107 +155,122 @@ class Mushroom:
         assert self.humidity in all_humidities
         assert self.weather in all_weather
     def parse_effects(self, effects_str):
-        self.effects = []
+        effects = []
         for eff in effects_str.split(", "):
-            type = "mult" if eff[0] == "x" else "add"
+            scalar = 0
+            match eff[0]:
+                case "+" | "-":
+                    operation = "add"
+                    scalar = int(eff.split()[0])
+                case "x":
+                    operation = "mult"
+                    scalar = int(eff.split()[0].strip("x"))
+                case "m":
+                    operation = "min"
+                case "M":
+                    operation = "max"
+                case "s":
+                    operation = "suppress"
+                case _:
+                    assert False, "unrecognized mushroom effect string"
             trait_code = eff[-1] # one-letter code in ANOURES
-            factor = eff[1:-1] # +/- single digit
-            modifier = TraitModifier(trait_code, factor, type=type)
-            self.effects.append(modifier)
+            modifier = SingleTraitModifier(trait_code, scalar=scalar, operation=operation)
+            effects.append(modifier)
+        self.modifier = MultiTraitModifier(effects)
 
 stout_funnel = Mushroom(
     name="Stout Funnel",        domain="Waking",        tile_type="water",
     temperature="Balmy",        humidity="Drenched",    weather="raining",
-    effects="+1A")
+    effects="+1 A")
 flat_stinkhorn = Mushroom(
     name="Flat Stinkhorn",      domain="Waking",        tile_type="grass",
     temperature="Balmy",        humidity="Normal",      weather="not raining",
-    effects="+1N, +1O")
+    effects="+1 N, +1 O")
 bothersome_fungus = Mushroom(
     name="Bothersome Fungus",   domain="Waking",        tile_type="mud",
     temperature="Warm",         humidity="Damp",        weather="not raining",
-    effects="+1U, +1E")
+    effects="+1 U, +1 E")
 withering_rot = Mushroom(
     name="Withering Rot",       domain="Waking",        tile_type="mud",
     temperature="Chilly",       humidity="Damp",        weather="not raining",
-    effects="-1A, -1S")
+    effects="-1 A, -1 S")
 shrinking_cap = Mushroom(
     name="Shrinking Cap",       domain="Waking",        tile_type="stagnant water",
     temperature="Balmy",        humidity="Damp",        weather="not raining",
-    effects="-1A, -1O")
+    effects="-1 A, -1 O")
 pickled_bonnet = Mushroom(
     name="Pickled Bonnet",      domain="Waking",        tile_type="inside",
     temperature="Mild",         humidity="Parched",     weather="not raining",
-    effects="+1A, +1S")
+    effects="+1 A, +1 S")
 raucous_conecap = Mushroom(
     name="Raucous Conecap",     domain="Waking",        tile_type="water",
     temperature="Balmy",        humidity="Waterlogged", weather="raining",
-    effects="+1O, +1R")
+    effects="+1 O, +1 R")
 grubby_parachute = Mushroom(
     name="Grubby Parachute",    domain="Waking",        tile_type="mud",
     temperature="Warm",         humidity="Wet",         weather="not raining",
-    effects="-1N")
+    effects="-1 N")
 frosty_jack = Mushroom(
     name="Frosty Jack",         domain="Waking",        tile_type="water",
     temperature="Hot",          humidity="Wet",         weather="not raining",
-    effects="-1U, +1E")
+    effects="-1 U, +1 E")
 filling_oyster = Mushroom(
     name="Filling Oyster",      domain="Waking",        tile_type="grass",
     temperature="Frozen",       humidity="Normal",      weather="raining",
-    effects="-1E")
+    effects="-1 E")
 bulbous_muffler = Mushroom(
     name="Bulbous Muffler",     domain="Waking",        tile_type="mud",
     temperature="Cold",         humidity="Damp",        weather="snowing",
-    effects="-1R")
+    effects="-1 R")
 squat_amplifier = Mushroom(
     name="Squat Amplifier",     domain="Dream",         tile_type="mud",
     temperature="Balmy",        humidity="Wet",         weather="raining",
-    effects="x2N, x2U")
+    effects="x2 N, x2 U")
 towering_expander = Mushroom(
     name="Towering Expander",   domain="Dream",         tile_type="grass",
     temperature="Warm",         humidity="Normal",      weather="not raining",
-    effects="x2N")
+    effects="x2 N")
 fools_mirror = Mushroom(
     name="Fool's Mirror",       domain="Dream",         tile_type="water",
     temperature="Chilly",       humidity="Wet",         weather="not raining",
-    effects="x-1A, x-1N")
+    effects="x-1 A, x-1 N")
 bloating_mould = Mushroom(
     name="Bloating Mould",      domain="Dream",         tile_type="inside",
     temperature="Mild",         humidity="Dry",         weather="not raining",
-    effects="x0O, x2S")
+    effects="suppress O, x2 S")
 stinking_bolete = Mushroom(
     name="Stinking Bolete",     domain="Dream",         tile_type="stagnant water",
     temperature="Warm",         humidity="Damp",        weather="not raining",
-    effects="x0N, x2O")
+    effects="suppress N, x2 O")
 pointed_deceiver = Mushroom(
     name="Pointed Deceiver",    domain="Dream",         tile_type="inside",
     temperature="Mild",         humidity="Normal",      weather="not raining",
-    effects="x0A, -1S")
+    effects="suppress A, -1 S")
 chattering_bell = Mushroom(
     name="Chattering Bell",     domain="Dream",         tile_type="grass",
     temperature="Chilly",       humidity="Damp",        weather="raining",
-    effects="x-1O, x2R")
+    effects="x-1 O, x2 R")
 false_suppressor = Mushroom(
     name="False Suppressor",    domain="Dream",         tile_type="inside",
     temperature="Chilly",       humidity="Dry",         weather="not raining",
-    effects="x0U, x2E")
+    effects="suppress U, x2 E")
 velvet_inverter = Mushroom(
     name="Velvet Inverter",     domain="Dream",         tile_type="grass",
     temperature="Hot",          humidity="Normal",      weather="not raining",
-    effects="x-1R, x-1E")
+    effects="x-1 R, x-1 E")
 rude_awakening = Mushroom(
     name="Rude Awakening",      domain="Dream",         tile_type="grass",
     temperature="Hot",          humidity="Damp",        weather="raining",
-    effects="mN")
+    effects="min N")
 torrential_prune = Mushroom(
     name="Torrential Prune",    domain="Dream",         tile_type="mud",
     temperature="Mild",         humidity="Normal",      weather="not raining",
-    effects="mA, MS")
+    effects="min A, MAX S")
 booming_mane = Mushroom(
     name="Booming Mane",        domain="Dream",         tile_type="water",
     temperature="Mild",         humidity="Damp",        weather="not raining",
-    effects="MO, MR")
+    effects="MAX O, MAX R")
 chill_pill = Mushroom(
     name="Chill Pill",          domain="Dream",         tile_type="inside",
     temperature="Chilly",       humidity="Normal",      weather="not raining",
-    effects="mU")
+    effects="min U")
